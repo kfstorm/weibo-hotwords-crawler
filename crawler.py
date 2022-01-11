@@ -2,6 +2,10 @@ import requests
 import json
 import re
 import datetime
+import sys
+import os
+
+DO_COMPRESS = False
 
 currnt_time = datetime.datetime.now()
 
@@ -66,7 +70,19 @@ else:
     output["hotwords"] = hotwords
 
 output = json.dumps(output, ensure_ascii=False)
-import zlib
-output = zlib.compress(output.encode("utf-8"))
-print(output)
-print(len(output))
+output = output.encode("utf-8")
+if DO_COMPRESS:
+    import zlib
+    output = zlib.compress(output)
+
+if len(sys.argv) > 1:
+    output_folder = sys.argv[1]
+else:
+    output_folder = "."
+os.makedirs(output_folder, exist_ok=True)
+
+output_filename = os.path.abspath(os.path.join(output_folder, f"output_{currnt_time:%Y-%m-%d_%H-%M-%S}.json"))
+with open(output_filename, 'wb') as f:
+    f.write(output)
+
+print(f"Fetched hotwords at {currnt_time} and wrote results to {output_filename}. Success: {not error}.")
