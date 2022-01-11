@@ -1,28 +1,22 @@
 import requests
 import json
 import re
-import datetime
-import sys
-import os
 
-DO_COMPRESS = False
 
-currnt_time = datetime.datetime.now()
-
-body = None
-hotwords = None
-error = None
-
-try:
+def fetch():
     url = 'https://m.weibo.cn/api/container/getIndex?containerid=106003type%3D25%26t%3D3%26filter_type%3Drealtimehot'
     response = requests.get(url)
     assert response
-    body = response.content.decode("utf-8")
+    return response.content.decode("utf-8")
 
+
+def extract(body):
     body_obj = json.loads(body)
     assert body_obj["ok"]
 
-    lists = [_ for _ in body_obj["data"]["cards"] if _.get("itemid") == "hotword"]
+    lists = [
+        _ for _ in body_obj["data"]["cards"] if _.get("itemid") == "hotword"
+    ]
     assert len(lists) == 1
     hotwords = lists[0]["card_group"]
 
@@ -57,32 +51,4 @@ try:
     hotwords = [_ for _ in hotwords if _]
 
     assert len(hotwords) == 50
-except Exception as e:
-    error = str(e)
-
-output = {
-    "fetch_time": currnt_time.astimezone().isoformat(),
-}
-if error:
-    output["error"] = error
-    output["http_body"] = body
-else:
-    output["hotwords"] = hotwords
-
-output = json.dumps(output, ensure_ascii=False)
-output = output.encode("utf-8")
-if DO_COMPRESS:
-    import zlib
-    output = zlib.compress(output)
-
-if len(sys.argv) > 1:
-    output_folder = sys.argv[1]
-else:
-    output_folder = "."
-os.makedirs(output_folder, exist_ok=True)
-
-output_filename = os.path.abspath(os.path.join(output_folder, f"output_{currnt_time:%Y-%m-%d_%H-%M-%S}.json"))
-with open(output_filename, 'wb') as f:
-    f.write(output)
-
-print(f"Fetched hotwords at {currnt_time} and wrote results to {output_filename}. Success: {not error}.")
+    return hotwords
