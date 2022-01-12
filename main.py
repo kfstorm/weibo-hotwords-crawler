@@ -4,23 +4,21 @@ import time
 import datetime
 import sys
 import os
-import zlib
+import gzip
 from itertools import groupby
 
-EXTENSION = ".json.zz"
+EXTENSION = ".json.gz"
 
 
 def read_file(filename):
-    with open(filename, "rb") as f:
-        binary = zlib.decompress(f.read())
-        return json.loads(binary.decode("utf-8"))
+    with gzip.open(filename, "rt", encoding='utf-8') as f:
+        return json.load(f)
 
 
 def write_file(filename, obj):
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, "wb") as f:
-        binary = json.dumps(obj, ensure_ascii=False).encode("utf-8")
-        f.write(zlib.compress(binary))
+    with gzip.open(filename, "wt", encoding='utf-8') as f:
+        json.dump(obj, f, ensure_ascii=False)
 
 
 def archive(output_dir, temp_dir):
