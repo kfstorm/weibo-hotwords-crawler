@@ -27,9 +27,9 @@ def archive(output_dir, temp_dir):
             if file_date < current_date:
                 archive_filename = os.path.join(
                     output_dir,
-                    str(file_date.year),
-                    str(file_date.month),
-                    f"{file_date.day}.json",
+                    file_date.strftime("%Y"),
+                    file_date.strftime("%m"),
+                    file_date.strftime("%d") + ".json",
                 )
                 if os.path.isfile(archive_filename):
                     data = read_json_file(archive_filename)
