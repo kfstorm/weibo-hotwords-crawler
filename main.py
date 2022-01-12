@@ -4,40 +4,48 @@ import time
 import datetime
 import sys
 import os
+import zlib
 from itertools import groupby
 
-
-def read_json_file(filename):
-    with open(filename, "r", encoding="utf-8") as f:
-        return json.load(f)
+EXTENSION = ".json.zz"
 
 
-def write_json_file(filename, obj):
+def read_file(filename):
+    with open(filename, "rb") as f:
+        binary = zlib.decompress(f.read())
+        return json.loads(binary.decode("utf-8"))
+
+
+def write_file(filename, obj):
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False)
+    with open(filename, "wb") as f:
+        binary = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        f.write(zlib.compress(binary))
 
 
 def archive(output_dir, temp_dir):
     current_date = datetime.datetime.utcnow().date()
     if os.path.isdir(temp_dir):
-        files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.endswith(".json")]
-        for file_date, _ in groupby(files, lambda f: datetime.datetime.utcfromtimestamp(int(os.path.splitext(os.path.basename(f))[0])).date()):
+        files = [
+            os.path.join(temp_dir, f) for f in os.listdir(temp_dir)
+            if f.endswith(EXTENSION)
+        ]
+        for file_date, _ in groupby(files, lambda f: datetime.datetime.utcfromtimestamp(int(os.path.basename(f).split('.')[0])).date()):
             files_of_date = list(_)
             if file_date < current_date:
                 archive_filename = os.path.join(
                     output_dir,
                     file_date.strftime("%Y"),
                     file_date.strftime("%m"),
-                    file_date.strftime("%d") + ".json",
+                    file_date.strftime("%d") + EXTENSION,
                 )
                 if os.path.isfile(archive_filename):
-                    data = read_json_file(archive_filename)
+                    data = read_file(archive_filename)
                 else:
                     data = []
                 for _ in sorted(files_of_date):
-                    data.append(read_json_file(_))
-                write_json_file(archive_filename, data)
+                    data.append(read_file(_))
+                write_file(archive_filename, data)
                 print(
                     f"Archive of date {file_date} is written to {archive_filename}"
                 )
@@ -67,9 +75,9 @@ def crawl(temp_dir, error_dir):
     else:
         output["hotwords"] = hotwords
 
-    result_filename = os.path.join(error_dir
-                                   if error else temp_dir, f"{timestamp}.json")
-    write_json_file(result_filename, output)
+    result_filename = os.path.join(error_dir if error else temp_dir,
+                                   f"{timestamp}{EXTENSION}")
+    write_file(result_filename, output)
     print(f"Crawl result is written to {result_filename}")
 
 
